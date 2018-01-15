@@ -1,0 +1,6 @@
+.Globe {
+    position: fixed;
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(rgb(67, 124, 199), #111) repeat scroll 0 0 #222;
+}
