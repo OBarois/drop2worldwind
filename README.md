@@ -17,9 +17,12 @@ Currently supports kml.
 
 ## To do list:
 
-* support for kmz
-* support for geojson 
-* support for WMS capability file (xml)
-* support for WMTS capability file (xml) 
+* KML Style editor: panel to let user change and save the style of features (stroke and fill colors, stroke width, labels on/off, clamping)
+* Time window selector to filter features
+* Cycle Picking gesture to show feature attributes in a pop-up panel
+* File Drag & Drop: kmz, geojson, WMS/WMTS capabilities (with pop-up dialog to select layer), 
+* URL Cut & Paste: kml, kmz, geojson, WMS/WMTS getMap requests or Capabilities, shape,
+* String Cut & Paste: WKT, geojson, kml
+* Save/load as OWC Context file
 
 
