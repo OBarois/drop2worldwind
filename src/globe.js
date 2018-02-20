@@ -76,7 +76,7 @@ class Globe extends React.Component {
                 reader.readAsDataURL(files[i]);
             }
 
-            if(files[i].name.endsWith('.geojson')) {
+            if(files[i].name.endsWith('.geojson') || files[i].name.endsWith('.json')) {
                 reader.onload = (function() {
                     //console.log(this.result);
                     context.addGeoJson(this.result,context);
