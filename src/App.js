@@ -1,10 +1,8 @@
 import React, { Component } from 'react';
-import logo from './logo.svg';
+//import logo from './logo.svg';
 import './App.css';
 import Globe from './globe'
 import DropZone from "./dropZone.js"
-
-const $ = window.jQuery;
 
 class App extends Component {
   render() {

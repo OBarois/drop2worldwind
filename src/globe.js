@@ -5,7 +5,6 @@ import './globe.css';
 //import WorldWind from '@nasaworldwind/worldwind';
 import WorldWind from '@nasaworldwind/worldwind';
 
-const $ = window.jQuery
 
 // ... other declarations here
 
@@ -34,27 +33,33 @@ class Globe extends React.Component {
 
     }
 
+    addGeoJson(url, context) {
+        let renderableLayer = new WorldWind.RenderableLayer("GeoJSON");
+        context.state.wwd.addLayer(renderableLayer);
+        let geoJson = new WorldWind.GeoJSONParser(url);
+        geoJson.load(null, null, renderableLayer);
+    }
+
     handleDrop(files) {
         var reader = new FileReader();
         var context = this;
         
         for(var i=0;i<files.length;i++) {
-            
-            switch (files[i].type) {
-                case "application/json":
-                    console.log('json');
-                    reader.onload = (function() {console.log(this.result)});
-                    reader.readAsText(files[i]);
-                    break;
-                case "application/vnd.google-earth.kml+xml":
-                    reader.onload = (function() {
-                        //console.log(this.result);
-                        context.addKML(this.result,context);
-                    });
-                    reader.readAsDataURL(files[i]);
-                    break;
+            if(files[i].type === 'application/vnd.google-earth.kml+xml') {
+                reader.onload = (function() {
+                    //console.log(this.result);
+                    context.addKML(this.result,context);
+                });
+                reader.readAsDataURL(files[i]);
             }
-            
+
+            if(files[i].name.endsWith('.geojson')) {
+                reader.onload = (function() {
+                    //console.log(this.result);
+                    context.addGeoJson(this.result,context);
+                });
+                reader.readAsDataURL(files[i]);
+            }
         }
         
     }
@@ -74,21 +79,12 @@ class Globe extends React.Component {
                 size: 256,
                 sector: WorldWind.Sector.FULL_SPHERE,
                 levelZeroDelta : new WorldWind.Location(90, 90)
-            }
+            };
 
 
 
             var layers = [
-                {layer: new WorldWind.BMNGLayer(), enabled: false},
-                {layer: new WorldWind.BMNGLandsatLayer(), enabled: false},
-                {layer: new WorldWind.WmsLayer(wmsConfig,""), enabled: true},
-                {layer: new WorldWind.BingAerialLayer(null), enabled: false},
-                {layer: new WorldWind.BingAerialWithLabelsLayer(null), enabled: false},
-                {layer: new WorldWind.BingRoadsLayer(null), enabled: false},
-                {layer: new WorldWind.OpenStreetMapImageLayer(null), enabled: false},
-                {layer: new WorldWind.CompassLayer(), enabled: true},
-                {layer: new WorldWind.CoordinatesDisplayLayer(wwd), enabled: true},
-                {layer: new WorldWind.ViewControlsLayer(wwd), enabled: true}
+                {layer: new WorldWind.WmsLayer(wmsConfig,""), enabled: true}
             ];
 
             for (var l = 0; l < layers.length; l++) {
