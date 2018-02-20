@@ -40,6 +40,21 @@ class Globe extends React.Component {
         geoJson.load(null, null, renderableLayer);
     }
 
+    addGeoTiff(url, context) {
+        var geotiffObject = new WorldWind.GeoTiffReader(url);
+
+        geotiffObject.readAsImage(function (canvas) {
+            var surfaceGeoTiff = new WorldWind.SurfaceImage(
+                geotiffObject.metadata.bbox,
+                new WorldWind.ImageSource(canvas)
+            );
+
+            var geotiffLayer = new WorldWind.RenderableLayer("GeoTiff");
+            geotiffLayer.addRenderable(surfaceGeoTiff);
+            context.state.wwd.addLayer(geotiffLayer);
+        });
+    }
+
     handleDrop(files) {
         var reader = new FileReader();
         var context = this;
@@ -49,6 +64,14 @@ class Globe extends React.Component {
                 reader.onload = (function() {
                     //console.log(this.result);
                     context.addKML(this.result,context);
+                });
+                reader.readAsDataURL(files[i]);
+            }
+
+            if(files[i].type === 'image/tiff') {
+                reader.onload = (function() {
+                    //console.log(this.result);
+                    context.addGeoTiff(this.result,context);
                 });
                 reader.readAsDataURL(files[i]);
             }
