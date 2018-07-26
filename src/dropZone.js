@@ -11,6 +11,7 @@ class DropZone extends React.Component {
       this._onDragLeave = this._onDragLeave.bind(this);
       this._onDragOver = this._onDragOver.bind(this);
       this._onDrop = this._onDrop.bind(this);
+      this._onPaste = this._onPaste.bind(this);
     }
     
     componentDidMount() {
@@ -19,6 +20,7 @@ class DropZone extends React.Component {
       window.addEventListener('dragover', this._onDragOver);
       document.getElementById('dragbox').addEventListener('dragleave', this._onDragLeave);
       window.addEventListener('drop', this._onDrop);
+      window.addEventListener('paste', this._onPaste);
     }
     
     componentWillUnmount() {
@@ -27,6 +29,8 @@ class DropZone extends React.Component {
       window.addEventListener('dragover', this._onDragOver);
       document.getElementById('dragbox').removeEventListener('dragleave', this._onDragLeave);
       window.removeEventListener('drop', this._onDrop);
+      window.removeEventListener('paste', this._onPaste);
+
     }
     
     _onDragEnter(e) {
@@ -55,6 +59,13 @@ class DropZone extends React.Component {
       this.setState({files: files});
       this.refs.child0.handleDrop(files);
       this.setState({className: 'drop-zone-hide'});
+      return false;
+    }
+
+    _onPaste(e) {
+      e.preventDefault();
+      //console.log(e.clipboardData.getData('Text') );
+      this.refs.child0.handlePaste(e.clipboardData);
       return false;
     }
     
