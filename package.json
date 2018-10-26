@@ -2,6 +2,7 @@
   "name": "senview",
   "version": "0.1.0",
   "private": true,
+  "homepage":"https://obarois.github.io/drop2worldwind",
   "dependencies": {
     "@nasaworldwind/worldwind": "^0.9.0",
     "jquery": "^3.2.1",
@@ -11,12 +12,14 @@
     "react-full-screen": "^0.2.3"
   },
   "devDependencies": {
+    "gh-pages": "^2.0.1",
     "react-scripts": "1.0.17"
   },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test --env=jsdom",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "deploy": "gh-pages -d build"
   }
 }
