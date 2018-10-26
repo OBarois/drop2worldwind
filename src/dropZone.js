@@ -64,7 +64,7 @@ class DropZone extends React.Component {
 
     _onPaste(e) {
       e.preventDefault();
-      //console.log(e.clipboardData.getData('Text') );
+      console.log(e.clipboardData.getData('Text') );
       this.refs.child0.handlePaste(e.clipboardData);
       return false;
     }

@@ -4,6 +4,7 @@ import './globe.css';
 
 //import WorldWind from '@nasaworldwind/worldwind';
 import WorldWind from '@nasaworldwind/worldwind';
+import { slide as Menu } from 'react-burger-menu'
 
 
 // ... other declarations here
@@ -22,7 +23,16 @@ class Globe extends React.Component {
         this.handleKey = this.handleKey.bind(this);
         this.toggleProjection = this.toggleProjection.bind(this);
         this.clearGlobe = this.clearGlobe.bind(this);
+        this.clearLastLayer = this.clearLastLayer.bind(this);
+        this.handlePaste = this.handlePaste.bind(this);
+        this.addHeatMap = this.addHeatMap.bind(this);
+        this.handleDrop = this.handleDrop.bind(this);
     }
+
+    showSettings (event) {
+        event.preventDefault();
+      }
+    
 
     handleKey(e) {
         switch (e.key) {
@@ -31,6 +41,10 @@ class Globe extends React.Component {
                 break;
             }
             case "c": {
+                this.clearLastLayer();
+                break;
+            }
+            case "C": {
                 this.clearGlobe();
                 break;
             }
@@ -46,6 +60,12 @@ class Globe extends React.Component {
         for(let i=0;i<LayersToRemove.length;i++) {
             if(LayersToRemove[i].displayName) this.wwd.removeLayer(LayersToRemove[i]);
         }
+        this.wwd.redraw();
+    }
+
+    clearLastLayer() {
+        let LayersToRemove = this.wwd.layers;
+        this.wwd.removeLayer(LayersToRemove.pop());
         this.wwd.redraw();
     }
 
@@ -95,6 +115,25 @@ class Globe extends React.Component {
         context.wwd.redraw();
     }
 
+    addHeatMap(url, context) {
+        var locations = [];
+        for(let i=0;i<url.length;i++) {
+            if(url[i].type == "GRDH") {
+                //console.log(url[i]["type"]);
+                console.log(url[i].type);
+                locations.push(                
+                    new WorldWind.MeasuredLocation(
+                        url[i].lon,
+                        url[i].lat,
+                        url[i].count
+                    )
+                );
+            }
+            
+        }
+        context.wwd.addLayer(new WorldWind.HeatMapLayer("HeatMap", locations));
+        context.wwd.redraw();
+    }
 
     addGeoTiff(url, context) {
         var geotiffObject = new WorldWind.GeoTiffReader(url);
@@ -135,13 +174,19 @@ class Globe extends React.Component {
             this.wwd.globe = this.state.roundGlobe;
         }
         this.wwd.redraw();
-        }
+    }
 
     handlePaste(clipboardData) {
         // detect if it is a geojson or a wkt
         try {
-            JSON.parse(clipboardData.getData('Text'));
+            console.log("paste");
+            let jsonObject = JSON.parse(clipboardData.getData('Text'));
+            if(jsonObject[0].hasOwnProperty('count') && jsonObject[0].hasOwnProperty('lat') && jsonObject[0].hasOwnProperty('lon') ) {
+                console.log("heat");
+                this.addHeatMap(jsonObject,this);
+            } else {
             this.addGeoJson(clipboardData.getData('Text'),this);
+            }
         } catch (e) {
             this.addWkt(clipboardData.getData('Text'),this);
         }
@@ -223,8 +268,56 @@ class Globe extends React.Component {
             width: "100%",
             height: "100%"
         }
-        return (
-            <div className="Globe">
+
+        var menuStyles = {
+            bmBurgerButton: {
+              position: 'fixed',
+              width: '36px',
+              height: '30px',
+              left: '36px',
+              top: '36px'
+            },
+            bmBurgerBars: {
+              background: '#373a47'
+            },
+            bmCrossButton: {
+              height: '24px',
+              width: '24px'
+            },
+            bmCross: {
+              background: '#bdc3c7'
+            },
+            bmMenu: {
+              //background: '#373a47',
+              background: 'rgba(10, 130, 130, 0.3)',
+              padding: '2.5em 1.5em 0',
+              fontSize: '1.15em',
+              overflow: 'hidden'
+            },
+            bmMorphShape: {
+              fill: '#373a47'
+            },
+            bmItemList: {
+              color: '#b8b7ad',
+              padding: '0.8em'
+            },
+            bmItem: {
+              display: 'inline-block'
+            },
+            bmOverlay: {
+              background: 'rgba(0, 0, 0, 0.3)'
+            }
+          }
+          
+          return (
+    
+            <div className="Globe" id="outer-container">
+                <Menu  styles={ menuStyles } disableOverlayClick noOverlay>
+                    <a id="home" className="menu-item" href="/">Home</a>
+                    <a id="about" className="menu-item" href="/about">About</a>
+                    <a id="contact" className="menu-item" href="/contact">Contact</a>
+                    <a onClick={ this.showSettings } className="menu-item--small" href="">Settings</a>
+                </Menu>
                 <canvas id="globe"  style={globeStyle}></canvas>
             </div>
         )
