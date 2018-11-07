@@ -3,6 +3,8 @@ import './App.css';
 import Globe from './globe'
 import DropZone from "./dropZone.js"
 import Fullscreen from "react-full-screen";
+import SlideMenu from "./slideMenu.js"
+
 
 class App extends Component {
 
@@ -53,6 +55,7 @@ class App extends Component {
     return (
       <div  className="App">
         <Fullscreen enabled={this.state.isFull} onChange={isFull => this.setState({isFull})}>
+          <SlideMenu/>
           <DropZone>
               <Globe/>
           </DropZone>
