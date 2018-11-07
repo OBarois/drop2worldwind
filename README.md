@@ -1,5 +1,7 @@
 This project was bootstrapped with [Create React App](https://github.com/facebookincubator/create-react-app).
 
+View the [Demo](https://obarois.github.io/drop2worldwind/)
+
 ## Quick set-up:
 
 ```sh

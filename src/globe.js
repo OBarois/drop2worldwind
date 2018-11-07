@@ -2,7 +2,6 @@ import React from 'react'
 
 import './globe.css';
 
-//import WorldWind from '@nasaworldwind/worldwind';
 import WorldWind from '@nasaworldwind/worldwind';
 
 
@@ -22,7 +21,16 @@ class Globe extends React.Component {
         this.handleKey = this.handleKey.bind(this);
         this.toggleProjection = this.toggleProjection.bind(this);
         this.clearGlobe = this.clearGlobe.bind(this);
+        this.clearLastLayer = this.clearLastLayer.bind(this);
+        this.handlePaste = this.handlePaste.bind(this);
+        this.addHeatMap = this.addHeatMap.bind(this);
+        this.handleDrop = this.handleDrop.bind(this);
     }
+
+    showSettings (event) {
+        event.preventDefault();
+      }
+    
 
     handleKey(e) {
         switch (e.key) {
@@ -31,6 +39,10 @@ class Globe extends React.Component {
                 break;
             }
             case "c": {
+                this.clearLastLayer();
+                break;
+            }
+            case "C": {
                 this.clearGlobe();
                 break;
             }
@@ -49,6 +61,12 @@ class Globe extends React.Component {
         this.wwd.redraw();
     }
 
+    clearLastLayer() {
+        let LayersToRemove = this.wwd.layers;
+        this.wwd.removeLayer(LayersToRemove.pop());
+        this.wwd.redraw();
+    }
+
     addKML(url,context) {
         var kmlFilePromise = new WorldWind.KmlFile(url, []);
         kmlFilePromise.then(function (kmlFile) {
@@ -60,6 +78,20 @@ class Globe extends React.Component {
             context.wwd.redraw();
             context.setState({kmlLayer: renderableLayer});
         });
+
+    }
+
+    addJson(data, context) {
+        console.log(data);
+        let jsonObject = JSON.parse(data);
+        if(!Array.isArray(jsonObject)) {
+            this.addGeoJson(data,this);
+        } else {
+            if(jsonObject[0].hasOwnProperty('count') && jsonObject[0].hasOwnProperty('lat') && jsonObject[0].hasOwnProperty('lon') ) {
+                //console.log("heat");
+                this.addHeatMap(jsonObject,this);
+            }
+        }
 
     }
 
@@ -95,6 +127,24 @@ class Globe extends React.Component {
         context.wwd.redraw();
     }
 
+    addHeatMap(jsonObject, context) {
+        var locations = [];
+        for(let i=0;i<jsonObject.length;i++) {
+            if(jsonObject[i].type == "GRDH") {
+                locations.push(                
+                    new WorldWind.MeasuredLocation(
+                        jsonObject[i].lon,
+                        jsonObject[i].lat,
+                        jsonObject[i].count
+                    )
+                );
+            }
+            //console.log(locations.length);
+            
+        }
+        context.wwd.addLayer(new WorldWind.HeatMapLayer("HeatMap", locations));
+        context.wwd.redraw();
+    }
 
     addGeoTiff(url, context) {
         var geotiffObject = new WorldWind.GeoTiffReader(url);
@@ -135,14 +185,18 @@ class Globe extends React.Component {
             this.wwd.globe = this.state.roundGlobe;
         }
         this.wwd.redraw();
-        }
+    }
 
+
+    
     handlePaste(clipboardData) {
         // detect if it is a geojson or a wkt
-        try {
-            JSON.parse(clipboardData.getData('Text'));
-            this.addGeoJson(clipboardData.getData('Text'),this);
-        } catch (e) {
+        var isValidJSON = true; 
+        try { JSON.parse(clipboardData.getData('Text')) } catch (e) { isValidJSON = false; }
+        
+        if(isValidJSON) {
+            this.addJson(clipboardData.getData('Text'),this);
+        } else {
             this.addWkt(clipboardData.getData('Text'),this);
         }
     }
@@ -171,9 +225,9 @@ class Globe extends React.Component {
             if(files[i].name.endsWith('.geojson') || files[i].name.endsWith('.json')) {
                 reader.onload = (function() {
                     //console.log(this.result);
-                    context.addGeoJson(this.result,context);
+                    context.addJson(this.result,context);
                 });
-                reader.readAsDataURL(files[i]);
+                reader.readAsText(files[i]);
             }
         }
         
@@ -223,8 +277,11 @@ class Globe extends React.Component {
             width: "100%",
             height: "100%"
         }
-        return (
-            <div className="Globe">
+
+          
+          return (
+    
+            <div className="Globe" id="outer-container">
                 <canvas id="globe"  style={globeStyle}></canvas>
             </div>
         )
