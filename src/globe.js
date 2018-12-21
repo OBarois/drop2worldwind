@@ -140,10 +140,11 @@ class Globe extends React.Component {
         console.log("format: " + loc.query.FORMAT);
         console.log(("FORMAT" in loc.query));
         var wmsConfig = {
-            service: loc.protocol + loc.host + loc.pathname,
+            service: loc.protocol + "//" + loc.host + loc.pathname,
             layerNames: ("layers" in loc.query)?loc.query.layers:loc.query.LAYERS,
             numLevels: 19,
             format: ("format" in loc.query)?loc.query.format:loc.query.FORMAT,
+            coordinateSystem: ("crs" in loc.query)?loc.query.crs:loc.query.CRS,
             size: 256,
             sector: WorldWind.Sector.FULL_SPHERE,
             levelZeroDelta : new WorldWind.Location(90, 90)
