@@ -2,14 +2,16 @@
   "name": "senview",
   "version": "0.1.0",
   "private": true,
-  "homepage":"https://obarois.github.io/drop2worldwind",
+  "homepage": "https://obarois.github.io/drop2worldwind",
   "dependencies": {
     "@nasaworldwind/worldwind": "^0.9.0",
     "jquery": "^3.2.1",
     "react": "^16.2.0",
     "react-burger-menu": "^2.5.2",
     "react-dom": "^16.2.0",
-    "react-full-screen": "^0.2.3"
+    "react-full-screen": "^0.2.3",
+    "react-redux": "^5.1.0",
+    "url-parse": "^1.4.4"
   },
   "devDependencies": {
     "gh-pages": "^2.0.1",

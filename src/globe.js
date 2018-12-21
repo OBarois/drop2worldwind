@@ -1,8 +1,11 @@
 import React from 'react'
 
 import './globe.css';
+import Url from 'url-parse';
+
 
 import WorldWind from '@nasaworldwind/worldwind';
+
 
 
 // ... other declarations here
@@ -12,7 +15,7 @@ class Globe extends React.Component {
         super(props);
         this.state = {
             wwdCreated: false,
-            currentProjection: '3D',
+            currentProjection: (props.hasOwnProperty('projection'))?props.projection:"Equirectangular"
             //supportedProjections = [ "3D", "Equirectangular", "Mercator" ]
         };
 
@@ -24,7 +27,8 @@ class Globe extends React.Component {
         this.clearLastLayer = this.clearLastLayer.bind(this);
         this.handlePaste = this.handlePaste.bind(this);
         this.addHeatMap = this.addHeatMap.bind(this);
-        this.handleDrop = this.handleDrop.bind(this);
+        this.handleDropFiles = this.handleDropFiles.bind(this);
+        this.handleDropText = this.handleDropText.bind(this);
     }
 
     showSettings (event) {
@@ -127,6 +131,31 @@ class Globe extends React.Component {
         context.wwd.redraw();
     }
 
+    addWMS(wmsurl, context) {
+        var loc = new Url(wmsurl.replace(/\s|\u200B/g, ''),true); // removes spaces which might be added when dragging a URL directly from a browser console log)
+        console.log(loc);
+        console.log("URL without spaces: " + wmsurl.replace(/\s/g, ''));
+        console.log("Should add background WMS");
+        console.log(loc.query);
+        console.log("format: " + loc.query.FORMAT);
+        console.log(("FORMAT" in loc.query));
+        var wmsConfig = {
+            service: loc.protocol + loc.host + loc.pathname,
+            layerNames: ("layers" in loc.query)?loc.query.layers:loc.query.LAYERS,
+            numLevels: 19,
+            format: ("format" in loc.query)?loc.query.format:loc.query.FORMAT,
+            size: 256,
+            sector: WorldWind.Sector.FULL_SPHERE,
+            levelZeroDelta : new WorldWind.Location(90, 90)
+        };
+        console.log(wmsConfig);
+
+        let renderableLayer = new WorldWind.WmsLayer(wmsConfig,"");
+        context.wwd.addLayer(renderableLayer);
+        context.wwd.redraw();
+    }
+
+
     addHeatMap(jsonObject, context) {
         var locations = [];
         for(let i=0;i<jsonObject.length;i++) {
@@ -189,19 +218,30 @@ class Globe extends React.Component {
 
 
     
-    handlePaste(clipboardData) {
-        // detect if it is a geojson or a wkt
+    handlePaste(text) {
+        console.log("pasted: "+text);
+        // detect if it is a geojson or a wkt or a wms url
         var isValidJSON = true; 
-        try { JSON.parse(clipboardData.getData('Text')) } catch (e) { isValidJSON = false; }
+        try { JSON.parse(text) } catch (e) { isValidJSON = false; }
         
         if(isValidJSON) {
-            this.addJson(clipboardData.getData('Text'),this);
+            this.addJson(text,this);
         } else {
-            this.addWkt(clipboardData.getData('Text'),this);
+            if (text.includes("GetMap")) {
+                this.addWMS(text,this);
+            } else {
+                this.addWkt(text,this);
+            }
         }
     }
 
-    handleDrop(files) {
+    handleDropText(text) {
+        console.log("dropped: "+text);
+        this.handlePaste(text);
+    }
+
+
+    handleDropFiles(files) {
         var reader = new FileReader();
         var context = this;
         
@@ -263,6 +303,11 @@ class Globe extends React.Component {
                 layers[l].layer.enabled = layers[l].enabled;
                 wwd.addLayer(layers[l].layer);
             }
+
+            this.toggleProjection((this.props.hasOwnProperty('projection'))?this.props.projection:"Equirectangular");
+
+            wwd.goToAnimator.travelTime = 1000;
+            wwd.goTo(new WorldWind.Location(41.827424, 12.674346));
 
             window.addEventListener('keydown', this.handleKey);
         }

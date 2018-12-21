@@ -57,7 +57,7 @@ class App extends Component {
         <Fullscreen enabled={this.state.isFull} onChange={isFull => this.setState({isFull})}>
           <SlideMenu/>
           <DropZone>
-              <Globe/>
+              <Globe projection={"3D"}></Globe>
           </DropZone>
         </Fullscreen>
       </div>
