@@ -1,6 +1,9 @@
 // Things to cut & paste on drop2worldwind
 
 // WMS GetMap requests
+
+https://tiles.maps.eox.at/wms?SERVICE=WMS&VERSION=1.3.0&REQUEST=GetMap&FORMAT=image%2Fpng&TRANSPARENT=true&TILED=true&LAYERS=overlay&WIDTH=256&HEIGHT=256&CRS=EPSG%3A4326&STYLES=&BBOX=0%2C5009377.085697312%2C2504688.5428486555%2C7514065.628545968
+
 https://visioterra.org/mapproxy/service?LAYERS=EarthAtNight_Nasa&FORMAT=image/jpeg&STYLES=&SRS=EPSG:4326&TRANSPARENT=FALSE&SERVICE=WMS&VERSION=1.1.1&REQUEST=GetMap&BBOX=-42.4951171875,19.072265625,50.2294921875,71.806640625&WIDTH=352&HEIGHT=200
 
 https://tiles.maps.eox.at/wms?service=WMS&request=GetMap&version=1.1.1&transparent=TRUE&layers=overlay_base&styles=&format=image/png&width=256&height=256&srs=EPSG:4326&bbox=-4.921875,47.8125,-4.21875,48.515625

@@ -5,6 +5,7 @@ import wellknown from 'wellknown';
 
 // Plugin to manage DHuS OpenSearch URL
 class DHuS_OpenSearch extends React.Component {
+
     constructor(props) {
       super(props);
       this.state = {
@@ -29,20 +30,6 @@ class DHuS_OpenSearch extends React.Component {
         function loadCompleteCallback() {context.wwd.redraw();}
         //function shapeConfigurationCallback() {}
         function shapeConfigurationCallback(geometry, properties) {
-            var colors = {
-                fillNormal: new WorldWind.Color(0, 1, 1, 0.3),
-                fillStack: new WorldWind.Color(0.6, 0.3, 0.3, 0),
-                //lineNormal: new WorldWind.Color(0.5, 0.1, 0.1, 1),
-                lineNormal: new WorldWind.Color(0, 1, 1, 1), 
-                lineStack: new WorldWind.Color(0.6, 0.3, 0.3, 0.3),
-                lineStacked: new WorldWind.Color(0, 0, 1, 1),
-                //fillSelect: new WorldWind.Color(0.6,0.3,0.8,0.5),
-                //fillSelect: new WorldWind.Color(0.8, 0.6, 0.1, 0.5),
-                fillSelect: new WorldWind.Color(0, 1, 1, 0.5),
-                QLSelect: new WorldWind.Color(0.8, 0.6, 0.1, 0),
-                //lineSelect: new WorldWind.Color(0.9, 0.1, 0.1, 1),
-                lineSelect: new WorldWind.Color(0, 1, 1, 1)
-              };
               
             var configuration = {};
         
@@ -74,42 +61,12 @@ class DHuS_OpenSearch extends React.Component {
             } else if (geometry.isPolygonType() || geometry.isMultiPolygonType()) {
               configuration.attributes = new WorldWind.ShapeAttributes(null);
         
-              // Fill the polygon with a random pastel color.
-              //                          configuration.attributes.interiorColor = new WorldWind.Color(
-              //                              0.6 * configuration.attributes.interiorColor.red,
-              //                              0.3 * configuration.attributes.interiorColor.green,
-              //                              0.3 * configuration.attributes.interiorColor.blue,
-              //                              0.5);
-              configuration.attributes.interiorColor = colors.fillNormal;
-              // Paint the outline in a darker variant of the interior color.
-              configuration.attributes.outlineColor = colors.lineNormal;
+              configuration.attributes.interiorColor = new WorldWind.Color(0, 1, 1, 0.3);
+              configuration.attributes.outlineColor = new WorldWind.Color(0, 1, 1, 0.8);
         
               configuration.attributes.outlineWidth = 1;
-                
-              configuration.highlightAttributes = new WorldWind.ShapeAttributes(
-                configuration.attributes
-              );
-              configuration.highlightAttributes.outlineColor = colors.lineSelect;
-              configuration.highlightAttributes.interiorColor = colors.QLSelect;
-              configuration.highlightAttributes.outlineWidth = 5;
-        
-              configuration.attributes.applyLighting = true;
-              //configuration.displayName = properties.links[2]['@title'];
-              //configuration.displayName = properties.EarthObservation.metaDataProperty.EarthObservationMetaData.identifier;
-              //console.log(properties.EarthObservation.metaDataProperty.EarthObservationMetaData.identifier);
-              // to do: add metadata in shapes rather than in results[]
+            
               configuration.userProperties = properties;
-              /*
-                          {
-                          id: properties.links[2]['@title'],
-                          title: properties.title,
-                          productStart: properties.EarthObservation.phenomenonTime.TimePeriod.beginPosition,
-                          productStop: properties.EarthObservation.phenomenonTime.TimePeriod.endPosition,
-                          url: (properties.links[2])?properties.links[2]['@href']: null,
-                          quicklook: null,
-                          dataset: searchSet.dataset,
-                          }
-                          */
             }
             return configuration;
         }
@@ -203,6 +160,7 @@ class DHuS_OpenSearch extends React.Component {
                 return null;
             }
         }
+    }
         
     handleDHuSResponse(json) {
         console.log(json);
@@ -230,7 +188,7 @@ class DHuS_OpenSearch extends React.Component {
             );
             context.wwd.addLayer(geometryCollectionLayer); 
     }
-}
+
 
     
     

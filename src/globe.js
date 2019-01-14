@@ -194,11 +194,29 @@ class Globe extends React.Component {
 
     addDataHubOpenSearchResults(url, context) {
         axios.get(url,{ crossdomain: true }).then(response => handleDHuSResponse(response));
-        function loadCompleteCallback() {context.wwd.redraw();}
+
+        var i = 0;
+        var intervalId = setInterval(function(){
+        if(i === 1000){
+            clearInterval(intervalId);
+        }
+        console.log("Repeat: "+i);
+        axios.get(url,{ crossdomain: true }).then(response => handleDHuSResponse(response));
+        i++;
+        }, 10000);
+
+        function loadCompleteCallback() {
+            context.wwd.redraw();
+        }
         //function shapeConfigurationCallback() {}
         function shapeConfigurationCallback(geometry, properties) {
-              
+
+            //console.log(properties);
             var configuration = {};
+            var name = properties.name || properties.Name || properties.NAME;
+            if (name) {
+                configuration.name = name;
+            }
         
             if (geometry.isPointType() || geometry.isMultiPointType()) {
               configuration.attributes = new WorldWind.PlacemarkAttributes();
@@ -228,9 +246,9 @@ class Globe extends React.Component {
             } else if (geometry.isPolygonType() || geometry.isMultiPolygonType()) {
               configuration.attributes = new WorldWind.ShapeAttributes(null);
         
-              configuration.attributes.interiorColor = new WorldWind.Color(0, 1, 1, 0.3);
+              configuration.attributes.interiorColor = new WorldWind.Color(0, 0.8, 0.8, 0.7);
               // Paint the outline in a darker variant of the interior color.
-              configuration.attributes.outlineColor = new WorldWind.Color(0, 1, 1, 0.8);
+              configuration.attributes.outlineColor = new WorldWind.Color(0, 0.8, 0.8, 0.7);
         
               configuration.attributes.outlineWidth = 1;
                 
@@ -284,6 +302,7 @@ class Globe extends React.Component {
                     properties: {
                         updated: new Date(hubItem.ingestiondate),
                         title: item.title,
+                        name: item.title,
                         date: hubItem.beginposition  +'/'+  hubItem.endposition,
                         links: {
                             data: [{
@@ -322,7 +341,7 @@ class Globe extends React.Component {
                     }
                 };
         
-                console.log("item: "+JSON.stringify(newItem));
+                //console.log("item: "+JSON.stringify(newItem));
         
                 return newItem;
             } catch (err) {
@@ -332,74 +351,139 @@ class Globe extends React.Component {
         }
         
         function handleDHuSResponse(json) {
-            console.log(json);
-            let features = new WorldWind.GeoJSONParser(json.data.feed.entry.map(function(a) {return mapFromHubOpenSearch(a);}));
-            console.log(JSON.stringify(features));
-            let geojson = {   
-                    type: "FeatureCollection",
-                    id: "search",
-                    properties: {
-                        totalResults: json.data.feed["opensearch:totalResults"],
-                        startIndex: (json.data.feed["opensearch:startIndex"])?json.data.feed["opensearch:startIndex"]:1,
-                        itemsPerPage: json.data.feed["opensearch:itemsPerPage"],
-                        title: "DHuS search response",
-                        updated: new Date()
-                    },
-                    features: features._dataSource
-                };
-            console.log(JSON.stringify(geojson));
-            let geometryCollectionGeoJSON = new WorldWind.GeoJSONParser(JSON.stringify(geojson));
-            let geometryCollectionLayer = new WorldWind.RenderableLayer("OpenSearchResults");
-            geometryCollectionGeoJSON.load(
-                loadCompleteCallback,
-                shapeConfigurationCallback,
-                geometryCollectionLayer
-              );
-              context.wwd.addLayer(geometryCollectionLayer); 
-        }
-        /*
-            url: url,
-            jsonp: false,
-            xhrFields: { withCredentials: true },
-            dataType: "json",
-            success: function(response) {
-              console.log(JSON.stringify(response));
-              let geometryCollectionGeoJSON = new WorldWind.GeoJSONParser(
-                JSON.stringify(response)
-              );
-              let geometryCollectionLayer = new WorldWind.RenderableLayer("OpenSearchResults");
-              geometryCollectionGeoJSON.load(
-                loadCompleteCallback,
-                shapeConfigurationCallback,
-                geometryCollectionLayer
-              );
-              wwd.addLayer(geometryCollectionLayer);
-            },
-            complete: function() {
-              nbOfSearchRunning = nbOfSearchRunning - 1;
-              console.log(
-                "Search done. " + nbOfSearchRunning + " more searches to go..."
-              );
-              if (nbOfSearchRunning == 0) {
-                $("#searching").fadeOut("slow");
-                $(".searchButtonImg").attr("src", "img/search-stop.gif");
-                $("#dmButton").fadeOut("slow");
-                $("#stackButton").fadeOut("slow");
-                $("#itemBox").html("");
-                //$('#stackButtonImg').attr('src','img/stackButton.png');
-              }
-            },
-            error: function(jqxhr, textStatus, error) {
-              var err = textStatus + ", " + error;
-              console.log("Search Failed (SSO ?): " + err);
+            
+            let features = [];
+            if (json.data.feed.entry) {
+                console.log(json.data.feed.entry.length+" items found");
+                try {
+                    features = json.data.feed.entry.map(function(a) {return mapFromHubOpenSearch(a);});
+                } catch (err) {
+                    console.log(json);
+                    console.log("Error: ");
+                    console.log(err);
+                    return;
+                }
+                //console.log(JSON.stringify(features));
+                let geojson = {   
+                        type: "FeatureCollection",
+                        id: "search",
+                        properties: {
+                            totalResults: json.data.feed["opensearch:totalResults"],
+                            startIndex: (json.data.feed["opensearch:startIndex"])?json.data.feed["opensearch:startIndex"]:1,
+                            itemsPerPage: json.data.feed["opensearch:itemsPerPage"],
+                            title: "DHuS search response",
+                            updated: new Date()
+                        },
+                        features: features
+                    };
+                //console.log(JSON.stringify(geojson));
+                //let geometryCollectionGeoJSON = new WorldWind.GeoJSONParser(JSON.stringify(geojson));
+                //let geometryCollectionLayer = new WorldWind.RenderableLayer("DHuSOpenSearchResults");
+                class myGeoJSONParser extends WorldWind.GeoJSONParser {
+                    constructor(json) {
+                        super(json)
+                    }
+                    addRenderablesForPolygon(layer, geometry, properties) {
+                        var name = properties.name || properties.Name || properties.NAME;   
+                        var existingRenderable = null;
+                        for (let i=0;i<layer.renderables.length;i++) {
+                            if(layer.renderables[i].displayName == name) existingRenderable = layer.renderables[i];
+                        }
+
+                        if(!existingRenderable) {
+                            //console.log("adding item: "+name);
+                            super.addRenderablesForPolygon(layer, geometry, properties);
+                            layer.renderables[layer.renderables.length-1].displayName=name;
+                        } else {
+                            //console.log("Not adding item: "+name);
+                        }
+                    }
+                    addRenderablesForMultiPolygon(layer, geometry, properties) {
+                        var name = properties.name || properties.Name || properties.NAME;   
+                        var existingRenderable = null;
+                        for (let i=0;i<layer.renderables.length;i++) {
+                            if(layer.renderables[i].displayName == name) existingRenderable = layer.renderables[i];
+                        }
+
+                        if(!existingRenderable) {
+                            //console.log("adding item: "+name);
+                            super.addRenderablesForMultiPolygon(layer, geometry, properties);
+                            layer.renderables[layer.renderables.length-1].displayName=name;
+                        } else {
+                            //console.log("Not adding item: "+name);
+                        }
+                    }
+            
+                }
+
+                let geometryCollectionGeoJSON = new myGeoJSONParser(JSON.stringify(geojson));
+
+                let geometryCollectionLayer = null;
+                for (let i=0;i<context.wwd.layers.length;i++) {
+                    if(context.wwd.layers[i].displayName === "DHuSOpenSearchResults") {
+                        geometryCollectionLayer = context.wwd.layers[i];
+                        
+                        //console.log(geometryCollectionLayer);
+                    }
+                }
+                if(!geometryCollectionLayer) {
+                    console.log("DHuS Layer not found!");
+                    geometryCollectionLayer = new WorldWind.RenderableLayer("DHuSOpenSearchResults");
+                    context.wwd.addLayer(geometryCollectionLayer); 
+                } else {
+                    console.log("Found DHuS Layer with "+geometryCollectionLayer.renderables.length+" items");
+                    for (let i=0;i<geometryCollectionLayer.renderables.length;i++) {
+                        console.log("Red shift");
+                        let r = geometryCollectionLayer.renderables[i].attributes.interiorColor.red *256;
+                        let g = geometryCollectionLayer.renderables[i].attributes.interiorColor.green*256;
+                        let b = geometryCollectionLayer.renderables[i].attributes.interiorColor.blue*256;
+
+                        let factor = 0.1;
+
+                        r=Math.round(r + factor*(200-r));
+                        g=Math.round(g + factor*(0-g));
+                        b=Math.round(b + factor*(0-b));
+
+                        //var newColor = _interpolateColor(geometryCollectionLayer.renderables[i].attributes.interiorColor,)
+
+                          geometryCollectionLayer.renderables[i].attributes.interiorColor.red = r/256;
+                          geometryCollectionLayer.renderables[i].attributes.interiorColor.green = g/256;
+                          geometryCollectionLayer.renderables[i].attributes.interiorColor.blue = b/256;
+                          geometryCollectionLayer.renderables[i].attributes.outlineColor.red = r/256;
+                          geometryCollectionLayer.renderables[i].attributes.outlineColor.green = g/256;
+                          geometryCollectionLayer.renderables[i].attributes.outlineColor.blue = b/256;
+                          geometryCollectionLayer.renderables[i].attributes.stateKeyInvalid = true;
+
+
+                        /*
+                        geometryCollectionLayer.renderables[i].attributes.interiorColor.red = 
+                            (geometryCollectionLayer.renderables[i].attributes.interiorColor.red >=1)? 1: geometryCollectionLayer.renderables[i].attributes.interiorColor.red+0.05;
+                        geometryCollectionLayer.renderables[i].attributes.interiorColor.green = 
+                            (geometryCollectionLayer.renderables[i].attributes.interiorColor.green <=0.1)? 0.1: geometryCollectionLayer.renderables[i].attributes.interiorColor.green-0.05;
+                        geometryCollectionLayer.renderables[i].attributes.interiorColor.blue = 
+                            (geometryCollectionLayer.renderables[i].attributes.interiorColor.blue <=0.1)? 0.1: geometryCollectionLayer.renderables[i].attributes.interiorColor.blue-0.05;
+                        geometryCollectionLayer.renderables[i].attributes.stateKeyInvalid = true;
+                        */
+                    }
+                }
+
+
+                geometryCollectionGeoJSON.load(
+                    loadCompleteCallback,
+                    shapeConfigurationCallback,
+                    geometryCollectionLayer
+                );
+                
+                //console.log(context.wwd.layers);
+            } else {
+                console.log("No items found!");
             }
-          });
-          */
+        }
     }
 
 
     toggleProjection(proj) {
-        let supportedProjections = [ "3D", "Equirectangular", "Mercator", "North Polar"];
+        let supportedProjections = [ "3D", "Equirectangular", "Mercator"];
         this.setState({currentProjection:(proj)?proj:supportedProjections[(supportedProjections.indexOf(this.state.currentProjection)+ 1) % supportedProjections.length]});
         switch (this.state.currentProjection) {
         case "3D":
@@ -434,7 +518,7 @@ class Globe extends React.Component {
         if(isValidJSON) {
             this.addJson(text,this);
         } else {
-            if (text.includes("apihub/search?")) {
+            if (text.includes("/search?")) {
                 this.addDataHubOpenSearchResults(text,this);
             } else {
                 if (text.includes("GetMap")) {
@@ -459,7 +543,7 @@ class Globe extends React.Component {
         for(var i=0;i<files.length;i++) {
             if(files[i].type === 'application/vnd.google-earth.kml+xml') {
                 reader.onload = (function() {
-                    //console.log(this.result);
+                    console.log("kml");
                     context.addKML(this.result,context);
                 });
                 reader.readAsDataURL(files[i]);
