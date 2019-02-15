@@ -108,12 +108,15 @@ class Globe extends React.Component {
             configuration.attributes.outlineColor = new WorldWind.Color(1, 1, 1, 1);
             return configuration;
         }
+        function loadCompleteCallback() {
+            context.wwd.redraw();
+        }
+
 
         let renderableLayer = new WorldWind.RenderableLayer("GeoJSON");
         context.wwd.addLayer(renderableLayer);
         let geoJson = new WorldWind.GeoJSONParser(url);
-        geoJson.load(null, shapeConfigurationCallback, renderableLayer);
-        context.wwd.redraw();
+        geoJson.load(loadCompleteCallback, shapeConfigurationCallback, renderableLayer);
     }
 
     addWkt(wktString, context) {
@@ -140,6 +143,8 @@ class Globe extends React.Component {
         console.log(loc.query);
         console.log("format: " + loc.query.FORMAT);
         console.log(("FORMAT" in loc.query));
+        var time = ("time" in loc.query)?loc.query.time:loc.query.TIME
+        console.log("time: " + time);
         var wmsConfig = {
             service: loc.protocol + "//" + loc.host + loc.pathname,
             layerNames: ("layers" in loc.query)?loc.query.layers:loc.query.LAYERS,
@@ -152,7 +157,7 @@ class Globe extends React.Component {
         };
         console.log(wmsConfig);
 
-        let renderableLayer = new WorldWind.WmsLayer(wmsConfig,"");
+        let renderableLayer = new WorldWind.WmsLayer(wmsConfig,time);
         context.wwd.addLayer(renderableLayer);
         context.wwd.redraw();
     }
@@ -192,8 +197,102 @@ class Globe extends React.Component {
         });
     }
 
-    addDataHubOpenSearchResults(url, context) {
-        axios.get(url,{ crossdomain: true }).then(response => handleDHuSResponse(response));
+
+    mapFromHubOpenSearch(item) {
+	
+        function reshuffle(array) {
+            let json = {};
+            for(let i=0; i < array.length; i++) {
+                json[array[i].name] =  array[i].content;
+            }
+            return json;
+        }
+    
+        try {
+            let hubItem = {};
+            if(item.date) Object.assign(hubItem,reshuffle(item.date));
+            if(item.int) Object.assign(hubItem,reshuffle(item.int));
+            if(item.double) Object.assign(hubItem,reshuffle(item.double));
+            if(item.str) Object.assign(hubItem,reshuffle(item.str));
+    
+    
+            var sizeArray = hubItem.size.split(" ");
+            var sizeInBytes;
+            switch (sizeArray[1]) {
+                case "B":
+                    sizeInBytes = Math.round(parseFloat(sizeArray[0]));
+                    break;
+                case "MB":
+                    sizeInBytes = Math.round(parseFloat(sizeArray[0])*1024);
+                    break;
+                case "GB":
+                    sizeInBytes = Math.round(parseFloat(sizeArray[0])*1024*1024);
+                    break;
+                case "TB":
+                    sizeInBytes = Math.round(parseFloat(sizeArray[0])*1024*1024*1024);
+                    break;
+            }
+            
+    
+            var newItem = {
+                id: item.title,
+                geometry: wellknown(hubItem.footprint),
+                type: "Feature",
+                properties: {
+                    updated: new Date(hubItem.ingestiondate),
+                    title: item.title,
+                    name: item.title,
+                    date: hubItem.beginposition  +'/'+  hubItem.endposition,
+                    links: {
+                        data: [{
+                            href: item.link[0].href,
+                        }]
+                    },
+                    earthObservation: {
+                        parentIdentifier: "",
+                        status: "ARCHIVED",
+                        acquisitionInformation: [{
+                            platform: {
+                                platformShortName: hubItem.platformname,
+                                platformSerialIdentifier: hubItem.platformserialidentifier
+                            },
+                            sensor: {
+                                instrument: hubItem.instrumentshortname,
+                                operationalMode: hubItem.sensoroperationalmode
+                            },
+                            acquisitionParameter: {
+                                acquisitionStartTime: new Date(hubItem.beginposition),
+                                acquisitionStopTime: new Date(hubItem.endposition),
+                                relativePassNumber: parseInt(hubItem.relativeorbitnumber),
+                                orbitNumber: parseInt(hubItem.orbitnumber),
+                                startTimeFromAscendingNode: null,
+                                stopTimeFromAscendingNode: null,
+                                orbitDirection: hubItem.orbitdirection
+    
+                            }
+                        }],
+                        productInformation: {
+                            productType: hubItem.producttype,
+                            //timeliness: indexes["product"]["Timeliness Category"],
+                            size: sizeInBytes
+                        }
+                    }
+                }
+            };
+    
+            //console.log("item: "+JSON.stringify(newItem));
+    
+            return newItem;
+        } catch (err) {
+            console.log("error: "+err.message);
+            return null;
+        }
+    }
+
+
+
+    addDataHubOpenSearchResults(url, context, mapFunction) {
+        axios.get(url,{ crossdomain: true }).then(response => handleDHuSResponse(response,mapFunction));
 
         var i = 0;
         var intervalId = setInterval(function(){
@@ -201,7 +300,7 @@ class Globe extends React.Component {
             clearInterval(intervalId);
         }
         console.log("Repeat: "+i);
-        axios.get(url,{ crossdomain: true }).then(response => handleDHuSResponse(response));
+        axios.get(url,{ crossdomain: true }).then(response => handleDHuSResponse(response,mapFunction));
         i++;
         }, 10000);
 
@@ -259,104 +358,14 @@ class Globe extends React.Component {
             return configuration;
         }
         
-        function mapFromHubOpenSearch(item) {
-	
-            function reshuffle(array) {
-                let json = {};
-                for(let i=0; i < array.length; i++) {
-                    json[array[i].name] =  array[i].content;
-                }
-                return json;
-            }
         
-            try {
-                let hubItem = {};
-                if(item.date) Object.assign(hubItem,reshuffle(item.date));
-                if(item.int) Object.assign(hubItem,reshuffle(item.int));
-                if(item.double) Object.assign(hubItem,reshuffle(item.double));
-                if(item.str) Object.assign(hubItem,reshuffle(item.str));
-        
-        
-                var sizeArray = hubItem.size.split(" ");
-                var sizeInBytes;
-                switch (sizeArray[1]) {
-                    case "B":
-                        sizeInBytes = Math.round(parseFloat(sizeArray[0]));
-                        break;
-                    case "MB":
-                        sizeInBytes = Math.round(parseFloat(sizeArray[0])*1024);
-                        break;
-                    case "GB":
-                        sizeInBytes = Math.round(parseFloat(sizeArray[0])*1024*1024);
-                        break;
-                    case "TB":
-                        sizeInBytes = Math.round(parseFloat(sizeArray[0])*1024*1024*1024);
-                        break;
-                }
-                
-        
-                var newItem = {
-                    id: item.title,
-                    geometry: wellknown(hubItem.footprint),
-                    type: "Feature",
-                    properties: {
-                        updated: new Date(hubItem.ingestiondate),
-                        title: item.title,
-                        name: item.title,
-                        date: hubItem.beginposition  +'/'+  hubItem.endposition,
-                        links: {
-                            data: [{
-                                href: item.link[0].href,
-                            }]
-                        },
-                        earthObservation: {
-                            parentIdentifier: "",
-                            status: "ARCHIVED",
-                            acquisitionInformation: [{
-                                platform: {
-                                    platformShortName: hubItem.platformname,
-                                    platformSerialIdentifier: hubItem.platformserialidentifier
-                                },
-                                sensor: {
-                                    instrument: hubItem.instrumentshortname,
-                                    operationalMode: hubItem.sensoroperationalmode
-                                },
-                                acquisitionParameter: {
-                                    acquisitionStartTime: new Date(hubItem.beginposition),
-                                    acquisitionStopTime: new Date(hubItem.endposition),
-                                    relativePassNumber: parseInt(hubItem.relativeorbitnumber),
-                                    orbitNumber: parseInt(hubItem.orbitnumber),
-                                    startTimeFromAscendingNode: null,
-                                    stopTimeFromAscendingNode: null,
-                                    orbitDirection: hubItem.orbitdirection
-        
-                                }
-                            }],
-                            productInformation: {
-                                productType: hubItem.producttype,
-                                //timeliness: indexes["product"]["Timeliness Category"],
-                                size: sizeInBytes
-                            }
-                        }
-                    }
-                };
-        
-                //console.log("item: "+JSON.stringify(newItem));
-        
-                return newItem;
-            } catch (err) {
-                console.log("error: "+err.message);
-                return null;
-            }
-        }
-        
-        function handleDHuSResponse(json) {
+        function handleDHuSResponse(json,mapFunction) {
             
             let features = [];
             if (json.data.feed.entry) {
                 console.log(json.data.feed.entry.length+" items found");
                 try {
-                    features = json.data.feed.entry.map(function(a) {return mapFromHubOpenSearch(a);});
+                    features = json.data.feed.entry.map(function(a) {return mapFunction(a);});
                 } catch (err) {
                     console.log(json);
                     console.log("Error: ");
@@ -518,13 +527,19 @@ class Globe extends React.Component {
         if(isValidJSON) {
             this.addJson(text,this);
         } else {
-            if (text.includes("/search?")) {
-                this.addDataHubOpenSearchResults(text,this);
+            if (text.includes("apihub/search?") || text.includes("dhus/search?")) {
+                this.addDataHubOpenSearchResults(text,this,this.mapFromHubOpenSearch);
+                
             } else {
-                if (text.includes("GetMap")) {
-                    this.addWMS(text,this);
+                if(text.includes("opensearch/request?")|| text.includes("finder.creodias.eu")) {
+                    console.log("fedeo !!");
+                    this.addGeoJson(text,this);
                 } else {
-                    this.addWkt(text,this);
+                    if (text.includes("GetMap")) {
+                        this.addWMS(text,this);
+                    } else {
+                        this.addWkt(text,this);
+                    }
                 }
             }
         }
@@ -580,7 +595,7 @@ class Globe extends React.Component {
 
             var wmsConfig = {
                 service: "https://tiles.maps.eox.at/wms",
-                layerNames: "s2cloudless",
+                layerNames: "s2cloudless-2018",
                 numLevels: 19,
                 format: "image/png",
                 size: 256,
