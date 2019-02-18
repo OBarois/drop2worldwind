@@ -6,7 +6,7 @@ import axios from 'axios';
 import wellknown from 'wellknown';
 
 
-import WorldWind from '@nasaworldwind/worldwind';
+import WorldWind from 'webwworldwind-esa';
 
 
 
@@ -158,6 +158,7 @@ class Globe extends React.Component {
         console.log(wmsConfig);
 
         let renderableLayer = new WorldWind.WmsLayer(wmsConfig,time);
+        renderableLayer.crossOrigin = 'use-credentials';
         context.wwd.addLayer(renderableLayer);
         context.wwd.redraw();
     }

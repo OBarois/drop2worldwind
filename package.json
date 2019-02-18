@@ -4,7 +4,7 @@
   "private": true,
   "homepage": "https://obarois.github.io/drop2worldwind",
   "dependencies": {
-    "@nasaworldwind/worldwind": "^0.9.0",
+    "webworldwind-esa": "^0.10.0-alpha",
     "axios": "^0.18.0",
     "jquery": "^3.2.1",
     "react": "^16.2.0",
