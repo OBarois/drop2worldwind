@@ -5,7 +5,7 @@
   "homepage": "https://obarois.github.io/drop2worldwind",
   "dependencies": {
     "webworldwind-oli": "github:OBarois/WebWorldWind#inertia",
-    "axios": "^0.18.0",
+    "axios": "^0.18.1",
     "jquery": "^3.2.1",
     "react": "^16.2.0",
     "react-burger-menu": "^2.5.2",
