@@ -55,17 +55,23 @@ class DropZone extends React.Component {
     
     _onDrop(e) {
       e.preventDefault();
-      let files = e.dataTransfer.files;
-      this.setState({files: files});
-      this.refs.child0.handleDrop(files);
-      this.setState({className: 'drop-zone-hide'});
+      //console.log("dropped text: " + e.dataTransfer.getData("Text"));
+
+        
+        if(e.dataTransfer.getData("Text").length != 0) {
+          this.refs.child0.handleDropText(e.dataTransfer.getData("Text"));
+        } else {
+          this.refs.child0.handleDropFiles(e.dataTransfer.files);
+        }
+        this.setState({className: 'drop-zone-hide'});
+      
       return false;
     }
 
     _onPaste(e) {
       e.preventDefault();
-      console.log(e.clipboardData.getData('Text') );
-      this.refs.child0.handlePaste(e.clipboardData);
+      //console.log(e.clipboardData.getData('Text') );
+      this.refs.child0.handlePaste(e.clipboardData.getData('Text'));
       return false;
     }
     
