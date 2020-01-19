@@ -4,9 +4,10 @@ import './globe.css';
 import Url from 'url-parse';
 import axios from 'axios';
 import wellknown from 'wellknown';
+import whiteDot from './images/white-dot.png';
 
 
-import WorldWind from 'webwworldwind-esa';
+import WorldWind from 'webworldwind-oli';
 
 
 
@@ -17,7 +18,8 @@ class Globe extends React.Component {
         super(props);
         this.state = {
             wwdCreated: false,
-            currentProjection: (props.hasOwnProperty('projection'))?props.projection:"Equirectangular"
+            currentProjection: (props.hasOwnProperty('projection'))?props.projection:"Equirectangular",
+            credentials: null
             //supportedProjections = [ "3D", "Equirectangular", "Mercator" ]
         };
 
@@ -103,11 +105,38 @@ class Globe extends React.Component {
     addGeoJson(url, context) {
         function shapeConfigurationCallback(geometry, properties) {
             var configuration = {};
-            configuration.attributes = new WorldWind.ShapeAttributes(null);
-            configuration.attributes.interiorColor = new WorldWind.Color(0, 1, 1, 0.2);
-            configuration.attributes.outlineColor = new WorldWind.Color(1, 1, 1, 1);
+
+            var placemarkAttributes = new WorldWind.PlacemarkAttributes(null);
+            placemarkAttributes.imageScale = 10;
+            placemarkAttributes.imageColor = new WorldWind.Color(0, 1, 1, 0.2);
+            placemarkAttributes.labelAttributes.offset = new WorldWind.Offset(
+                WorldWind.OFFSET_FRACTION, 5,
+                WorldWind.OFFSET_FRACTION, 5);
+            //placemarkAttributes.imageSource = whiteDot;
+
+
+            if (geometry.isPointType() || geometry.isMultiPointType()) {
+                configuration.attributes = new WorldWind.PlacemarkAttributes(placemarkAttributes);
+                
+            } else if (geometry.isLineStringType() || geometry.isMultiLineStringType()) {
+                configuration.attributes.drawOutline = true;
+                configuration.attributes.outlineColor = new WorldWind.Color(
+                  0.1 * configuration.attributes.interiorColor.red,
+                  0.3 * configuration.attributes.interiorColor.green,
+                  0.7 * configuration.attributes.interiorColor.blue,
+                  1
+                );
+                configuration.attributes.outlineWidth = 1;
+            } else if (geometry.isPolygonType() || geometry.isMultiPolygonType()) {
+                configuration.attributes = new WorldWind.ShapeAttributes(null);
+                configuration.attributes.interiorColor = new WorldWind.Color(0, 1, 1, 0.2);
+                configuration.attributes.outlineColor = new WorldWind.Color(1, 1, 1, 1);
+            }
+
+            console.log(configuration.attributes);
             return configuration;
         }
+
         function loadCompleteCallback() {
             context.wwd.redraw();
         }
@@ -293,7 +322,10 @@ class Globe extends React.Component {
 
 
     addDataHubOpenSearchResults(url, context, mapFunction) {
-        axios.get(url,{ crossdomain: true }).then(response => handleDHuSResponse(response,mapFunction));
+        if (!this.state.credentials) this.state.credentials = prompt('Please enter your credentials for accessing the datahub (format: "username:password") ')
+
+        var authorizationBasic = window.btoa(this.state.credentials);
+        axios.get(url,{ crossdomain: true, headers: {'Authorization': "Basic " + authorizationBasic }}).then(response => handleDHuSResponse(response,mapFunction));
 
         var i = 0;
         var intervalId = setInterval(function(){
@@ -301,7 +333,7 @@ class Globe extends React.Component {
             clearInterval(intervalId);
         }
         console.log("Repeat: "+i);
-        axios.get(url,{ crossdomain: true }).then(response => handleDHuSResponse(response,mapFunction));
+        axios.get(url,{ crossdomain: true, headers: {'Authorization': "Basic " + authorizationBasic } }).then(response => handleDHuSResponse(response,mapFunction));
         i++;
         }, 10000);
 
@@ -493,7 +525,7 @@ class Globe extends React.Component {
 
 
     toggleProjection(proj) {
-        let supportedProjections = [ "3D", "Equirectangular", "Mercator"];
+        let supportedProjections = [ "3D", "Equirectangular", "Mercator", "North Polar", "South Polar"];
         this.setState({currentProjection:(proj)?proj:supportedProjections[(supportedProjections.indexOf(this.state.currentProjection)+ 1) % supportedProjections.length]});
         switch (this.state.currentProjection) {
         case "3D":
@@ -532,7 +564,7 @@ class Globe extends React.Component {
                 this.addDataHubOpenSearchResults(text,this,this.mapFromHubOpenSearch);
                 
             } else {
-                if(text.includes("opensearch/request?")|| text.includes("finder.creodias.eu")) {
+                if(text.includes("opensearch/request?")|| text.includes("finder.creodias.eu")|| text.includes("ngeo/catalogue")) {
                     console.log("fedeo !!");
                     this.addGeoJson(text,this);
                 } else {

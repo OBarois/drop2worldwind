@@ -4,7 +4,7 @@
   "private": true,
   "homepage": "https://obarois.github.io/drop2worldwind",
   "dependencies": {
-    "webworldwind-esa": "^0.10.0-alpha",
+    "webworldwind-oli": "github:OBarois/WebWorldWind#inertia",
     "axios": "^0.18.0",
     "jquery": "^3.2.1",
     "react": "^16.2.0",
