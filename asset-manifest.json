@@ -1,15 +1,6 @@
 {
-  "files": {
-    "main.css": "/drop2worldwind/static/css/main.ef384adb.chunk.css",
-    "main.js": "/drop2worldwind/static/js/main.97f525ba.chunk.js",
-    "main.js.map": "/drop2worldwind/static/js/main.97f525ba.chunk.js.map",
-    "runtime~main.js": "/drop2worldwind/static/js/runtime~main.746dcf31.js",
-    "runtime~main.js.map": "/drop2worldwind/static/js/runtime~main.746dcf31.js.map",
-    "static/js/2.772ecd75.chunk.js": "/drop2worldwind/static/js/2.772ecd75.chunk.js",
-    "static/js/2.772ecd75.chunk.js.map": "/drop2worldwind/static/js/2.772ecd75.chunk.js.map",
-    "index.html": "/drop2worldwind/index.html",
-    "precache-manifest.93a1e273b13b05d3e212a72937040b64.js": "/drop2worldwind/precache-manifest.93a1e273b13b05d3e212a72937040b64.js",
-    "service-worker.js": "/drop2worldwind/service-worker.js",
-    "static/css/main.ef384adb.chunk.css.map": "/drop2worldwind/static/css/main.ef384adb.chunk.css.map"
-  }
+  "main.css": "static/css/main.788ee136.css",
+  "main.css.map": "static/css/main.788ee136.css.map",
+  "main.js": "static/js/main.cde55337.js",
+  "main.js.map": "static/js/main.cde55337.js.map"
 }
