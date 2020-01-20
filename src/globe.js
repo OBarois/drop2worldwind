@@ -564,7 +564,7 @@ class Globe extends React.Component {
                 this.addDataHubOpenSearchResults(text,this,this.mapFromHubOpenSearch);
                 
             } else {
-                if(text.includes("opensearch/request?")|| text.includes("finder.creodias.eu")|| text.includes("ngeo/catalogue")) {
+                if(text.includes("opensearch/request?")|| text.includes("finder.creodias.eu")|| text.includes("ngeo/catalogue") || text.includes("search")) {
                     console.log("fedeo !!");
                     this.addGeoJson(text,this);
                 } else {
