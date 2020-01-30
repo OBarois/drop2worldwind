@@ -19,7 +19,8 @@ class Globe extends React.Component {
         this.state = {
             wwdCreated: false,
             currentProjection: (props.hasOwnProperty('projection'))?props.projection:"Equirectangular",
-            credentials: null
+            credentials: null,
+            autoRefresh: (props.hasOwnProperty('autoRefreshSearch'))?props.autoRefreshSearch:false
             //supportedProjections = [ "3D", "Equirectangular", "Mercator" ]
         };
 
@@ -52,6 +53,10 @@ class Globe extends React.Component {
             }
             case "C": {
                 this.clearGlobe();
+                break;
+            }
+            case "a": {
+                this.setState({ autoRefresh: !this.state.autoRefresh});
                 break;
             }
             default:
@@ -325,17 +330,20 @@ class Globe extends React.Component {
         if (!this.state.credentials) this.state.credentials = prompt('Please enter your credentials for accessing the datahub (format: "username:password") ')
 
         var authorizationBasic = window.btoa(this.state.credentials);
-        axios.get(url,{ crossdomain: true, headers: {'Authorization': "Basic " + authorizationBasic }}).then(response => handleDHuSResponse(response,mapFunction));
+        axios.get(url,{ crossdomain: true, headers: {'Authorization': "Basic " + authorizationBasic }}).then(response => handleDHuSResponse(response,mapFunction,this.state.autoRefresh));
 
         var i = 0;
-        var intervalId = setInterval(function(){
-        if(i === 1000){
-            clearInterval(intervalId);
+        if (this.state.autoRefresh) {
+            var intervalId = setInterval(function(){
+                if(i === 1000){
+                    clearInterval(intervalId);
+                }
+                console.log("Repeat: "+i);
+                axios.get(url,{ crossdomain: true, headers: {'Authorization': "Basic " + authorizationBasic } }).then(response => handleDHuSResponse(response,mapFunction,true));
+                i++;
+                }, 
+            10000);
         }
-        console.log("Repeat: "+i);
-        axios.get(url,{ crossdomain: true, headers: {'Authorization': "Basic " + authorizationBasic } }).then(response => handleDHuSResponse(response,mapFunction));
-        i++;
-        }, 10000);
 
         function loadCompleteCallback() {
             context.wwd.redraw();
@@ -392,13 +400,19 @@ class Globe extends React.Component {
         }
         
         
-        function handleDHuSResponse(json,mapFunction) {
-            
+        function handleDHuSResponse(json,mapFunction,autoRefresh) {
+            console.log(autoRefresh)
             let features = [];
             if (json.data.feed.entry) {
-                console.log(json.data.feed.entry.length+" items found");
+                let entries = []
+                if ( !Array.isArray(json.data.feed.entry) ) {
+                    entries[0] = json.data.feed.entry
+                } else{
+                    entries = json.data.feed.entry
+                }
+                console.log(entries.length+" items found");
                 try {
-                    features = json.data.feed.entry.map(function(a) {return mapFunction(a);});
+                    features = entries.map(function(a) {return mapFunction(a);});
                 } catch (err) {
                     console.log(json);
                     console.log("Error: ");
@@ -413,7 +427,7 @@ class Globe extends React.Component {
                             totalResults: json.data.feed["opensearch:totalResults"],
                             startIndex: (json.data.feed["opensearch:startIndex"])?json.data.feed["opensearch:startIndex"]:1,
                             itemsPerPage: json.data.feed["opensearch:itemsPerPage"],
-                            title: "DHuS search response",
+                            title: json.data.feed["title"],
                             updated: new Date()
                         },
                         features: features
@@ -459,56 +473,62 @@ class Globe extends React.Component {
                 }
 
                 let geometryCollectionGeoJSON = new myGeoJSONParser(JSON.stringify(geojson));
-
                 let geometryCollectionLayer = null;
-                for (let i=0;i<context.wwd.layers.length;i++) {
-                    if(context.wwd.layers[i].displayName === "DHuSOpenSearchResults") {
-                        geometryCollectionLayer = context.wwd.layers[i];
-                        
-                        //console.log(geometryCollectionLayer);
-                    }
-                }
-                if(!geometryCollectionLayer) {
-                    console.log("DHuS Layer not found!");
-                    geometryCollectionLayer = new WorldWind.RenderableLayer("DHuSOpenSearchResults");
+
+                if (!autoRefresh) {
+                    geometryCollectionLayer = new WorldWind.RenderableLayer();
                     context.wwd.addLayer(geometryCollectionLayer); 
                 } else {
-                    console.log("Found DHuS Layer with "+geometryCollectionLayer.renderables.length+" items");
-                    for (let i=0;i<geometryCollectionLayer.renderables.length;i++) {
-                        console.log("Red shift");
-                        let r = geometryCollectionLayer.renderables[i].attributes.interiorColor.red *256;
-                        let g = geometryCollectionLayer.renderables[i].attributes.interiorColor.green*256;
-                        let b = geometryCollectionLayer.renderables[i].attributes.interiorColor.blue*256;
 
-                        let factor = 0.1;
+                    
+                    for (let i=0;i<context.wwd.layers.length;i++) {
+                        if(context.wwd.layers[i].displayName === "DHuSOpenSearchResults") {
+                            geometryCollectionLayer = context.wwd.layers[i];
+                            
+                            //console.log(geometryCollectionLayer);
+                        }
+                    }
+                    if(!geometryCollectionLayer) {
+                        console.log("DHuS Layer not found!");
+                        geometryCollectionLayer = new WorldWind.RenderableLayer("DHuSOpenSearchResults");
+                        context.wwd.addLayer(geometryCollectionLayer); 
+                    } else {
+                        console.log("Found DHuS Layer with "+geometryCollectionLayer.renderables.length+" items");
+                        for (let i=0;i<geometryCollectionLayer.renderables.length;i++) {
+                            console.log("Red shift");
+                            let r = geometryCollectionLayer.renderables[i].attributes.interiorColor.red *256;
+                            let g = geometryCollectionLayer.renderables[i].attributes.interiorColor.green*256;
+                            let b = geometryCollectionLayer.renderables[i].attributes.interiorColor.blue*256;
 
-                        r=Math.round(r + factor*(200-r));
-                        g=Math.round(g + factor*(0-g));
-                        b=Math.round(b + factor*(0-b));
+                            let factor = 0.1;
 
-                        //var newColor = _interpolateColor(geometryCollectionLayer.renderables[i].attributes.interiorColor,)
+                            r=Math.round(r + factor*(200-r));
+                            g=Math.round(g + factor*(0-g));
+                            b=Math.round(b + factor*(0-b));
 
-                          geometryCollectionLayer.renderables[i].attributes.interiorColor.red = r/256;
-                          geometryCollectionLayer.renderables[i].attributes.interiorColor.green = g/256;
-                          geometryCollectionLayer.renderables[i].attributes.interiorColor.blue = b/256;
-                          geometryCollectionLayer.renderables[i].attributes.outlineColor.red = r/256;
-                          geometryCollectionLayer.renderables[i].attributes.outlineColor.green = g/256;
-                          geometryCollectionLayer.renderables[i].attributes.outlineColor.blue = b/256;
-                          geometryCollectionLayer.renderables[i].attributes.stateKeyInvalid = true;
+                            //var newColor = _interpolateColor(geometryCollectionLayer.renderables[i].attributes.interiorColor,)
+
+                            geometryCollectionLayer.renderables[i].attributes.interiorColor.red = r/256;
+                            geometryCollectionLayer.renderables[i].attributes.interiorColor.green = g/256;
+                            geometryCollectionLayer.renderables[i].attributes.interiorColor.blue = b/256;
+                            geometryCollectionLayer.renderables[i].attributes.outlineColor.red = r/256;
+                            geometryCollectionLayer.renderables[i].attributes.outlineColor.green = g/256;
+                            geometryCollectionLayer.renderables[i].attributes.outlineColor.blue = b/256;
+                            geometryCollectionLayer.renderables[i].attributes.stateKeyInvalid = true;
 
 
-                        /*
-                        geometryCollectionLayer.renderables[i].attributes.interiorColor.red = 
-                            (geometryCollectionLayer.renderables[i].attributes.interiorColor.red >=1)? 1: geometryCollectionLayer.renderables[i].attributes.interiorColor.red+0.05;
-                        geometryCollectionLayer.renderables[i].attributes.interiorColor.green = 
-                            (geometryCollectionLayer.renderables[i].attributes.interiorColor.green <=0.1)? 0.1: geometryCollectionLayer.renderables[i].attributes.interiorColor.green-0.05;
-                        geometryCollectionLayer.renderables[i].attributes.interiorColor.blue = 
-                            (geometryCollectionLayer.renderables[i].attributes.interiorColor.blue <=0.1)? 0.1: geometryCollectionLayer.renderables[i].attributes.interiorColor.blue-0.05;
-                        geometryCollectionLayer.renderables[i].attributes.stateKeyInvalid = true;
-                        */
+                            /*
+                            geometryCollectionLayer.renderables[i].attributes.interiorColor.red = 
+                                (geometryCollectionLayer.renderables[i].attributes.interiorColor.red >=1)? 1: geometryCollectionLayer.renderables[i].attributes.interiorColor.red+0.05;
+                            geometryCollectionLayer.renderables[i].attributes.interiorColor.green = 
+                                (geometryCollectionLayer.renderables[i].attributes.interiorColor.green <=0.1)? 0.1: geometryCollectionLayer.renderables[i].attributes.interiorColor.green-0.05;
+                            geometryCollectionLayer.renderables[i].attributes.interiorColor.blue = 
+                                (geometryCollectionLayer.renderables[i].attributes.interiorColor.blue <=0.1)? 0.1: geometryCollectionLayer.renderables[i].attributes.interiorColor.blue-0.05;
+                            geometryCollectionLayer.renderables[i].attributes.stateKeyInvalid = true;
+                            */
+                        }
                     }
                 }
-
 
                 geometryCollectionGeoJSON.load(
                     loadCompleteCallback,
@@ -556,26 +576,28 @@ class Globe extends React.Component {
         // detect if it is a geojson or a wkt or a wms url
         var isValidJSON = true; 
         try { JSON.parse(text) } catch (e) { isValidJSON = false; }
-        
-        if(isValidJSON) {
-            this.addJson(text,this);
-        } else {
-            if (text.includes("apihub/search?") || text.includes("dhus/search?")) {
-                this.addDataHubOpenSearchResults(text,this,this.mapFromHubOpenSearch);
-                
+        try { 
+            if(isValidJSON) {
+                this.addJson(text,this);
             } else {
-                if(text.includes("opensearch/request?")|| text.includes("finder.creodias.eu")|| text.includes("ngeo/catalogue") || text.includes("search")) {
-                    console.log("fedeo !!");
-                    this.addGeoJson(text,this);
+                if (text.includes("apihub/search?") || text.includes("dhus/search?")) {
+                    this.addDataHubOpenSearchResults(text,this,this.mapFromHubOpenSearch);
+                    
                 } else {
-                    if (text.includes("GetMap")) {
-                        this.addWMS(text,this);
+                    if(text.includes("opensearch/request?")|| text.includes("finder.creodias.eu")|| text.includes("ngeo/catalogue") || text.includes("search")) {
+                        console.log("fedeo !!");
+                        this.addGeoJson(text,this);
                     } else {
-                        this.addWkt(text,this);
+                        if (text.includes("GetMap")) {
+                            this.addWMS(text,this);
+                        } else {
+                            this.addWkt(text,this);
+                        }
                     }
                 }
             }
         }
+        catch (e) { console.log("Could not handle the dropped item") }
     }
 
     handleDropText(text) {

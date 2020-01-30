@@ -13,6 +13,7 @@ class App extends Component {
  
     this.state = {
       isFull: false,
+      autoRefreshSearch: false
     };
     this.goFull = this.goFull.bind(this);
     this.handleKey = this.handleKey.bind(this);
@@ -57,7 +58,7 @@ class App extends Component {
         <Fullscreen enabled={this.state.isFull} onChange={isFull => this.setState({isFull})}>
           <SlideMenu/>
           <DropZone>
-              <Globe projection={"3D"}></Globe>
+              <Globe projection={"3D"} autoRefreshSearch={this.state.autoRefreshSearch}></Globe>
           </DropZone>
         </Fullscreen>
       </div>
